@@ -1,0 +1,6 @@
+{
+  "name": "EducaFlow - Plataforma Ensino Fundamental I",
+  "description": "EducaFlow Sprint 01 - Foundation & Bootstrap Architecture with Next.js 15 App Router, React 19, Supabase, Dexie IndexedDB, Zustand, TanStack Query, and Offline Sync Engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
