@@ -143,7 +143,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onOpenMatrix }) => {
   };
 
   return (
-    <header className="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0 shadow-xs">
+    <header className="min-h-[5rem] py-3 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0 shadow-xs pt-safe">
       <div>
         <h2 className="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
           {currentInfo.title}

@@ -7,10 +7,12 @@ interface AppState {
   selectedClassId: string | null;
   selectedClass: SchoolClass | null;
   activeTab: 'chamada' | 'diario' | 'planos' | 'pareceres' | 'config';
+  teacherActiveTab: 'attendance' | 'diary' | 'planner';
   isSidebarOpen: boolean;
   setTheme: (theme: ThemeMode) => void;
   setSelectedClass: (schoolClass: SchoolClass | null) => void;
   setActiveTab: (tab: AppState['activeTab']) => void;
+  setTeacherActiveTab: (tab: 'attendance' | 'diary' | 'planner') => void;
   toggleSidebar: () => void;
 }
 
@@ -27,6 +29,7 @@ export const useAppStore = create<AppState>((set) => ({
     studentCount: 5,
   },
   activeTab: 'chamada',
+  teacherActiveTab: 'attendance',
   isSidebarOpen: true,
 
   setTheme: (theme) => {
@@ -42,6 +45,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
 
   setActiveTab: (activeTab) => set({ activeTab }),
+  setTeacherActiveTab: (teacherActiveTab) => set({ teacherActiveTab }),
 
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
 }));

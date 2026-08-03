@@ -1,1 +1,17 @@
 @import "tailwindcss";
+
+/* iOS Safe Area Utilities */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* iOS Safari Zoom Prevention and Touch Ergonomics */
+input, textarea, select {
+  font-size: 16px !important; /* Prevents automatic viewport zooming in iOS Safari on focus */
+  touch-action: manipulation; /* Eliminates the double-tap zoom delay for much faster click responses */
+}
+

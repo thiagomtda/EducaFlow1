@@ -25,8 +25,6 @@ export class SyncEngine {
 
     try {
       const pendingItems = await db.syncQueue
-        .where('status')
-        .equals('PENDING')
         .limit(20)
         .toArray();
 
@@ -42,12 +40,9 @@ export class SyncEngine {
 
       for (const item of pendingItems) {
         try {
-          let tableName: string = SUPABASE_TABLES.ATTENDANCE;
-          if (item.entity === 'lessonJournal') tableName = SUPABASE_TABLES.LESSON_JOURNALS;
-          if (item.entity === 'lessonPlan') tableName = SUPABASE_TABLES.LESSON_PLANS;
-          if (item.entity === 'student') tableName = SUPABASE_TABLES.STUDENTS;
+          const tableName = item.table;
 
-          if (item.action === 'CREATE' || item.action === 'UPDATE') {
+          if (item.action === 'INSERT' || item.action === 'UPDATE') {
             const { error } = await supabaseBrowser
               .from(tableName)
               .upsert(item.payload);
@@ -63,29 +58,18 @@ export class SyncEngine {
           }
 
           if (item.id) {
-            await db.syncQueue.update(item.id, {
-              status: 'SUCCESS',
-            });
+            await db.syncQueue.delete(item.id);
           }
 
           processedCount++;
         } catch (err) {
           errorCount++;
           const errorMsg = String(err);
-          logger.error(`Falha ao sincronizar item #${item.id} [${item.entity}]`, { error: errorMsg });
-
-          if (item.id) {
-            const retries = (item.retries || 0) + 1;
-            await db.syncQueue.update(item.id, {
-              retries,
-              status: retries >= AppConstants.MAX_SYNC_RETRIES ? 'ERROR' : 'PENDING',
-              lastErrorMessage: errorMsg,
-            });
-          }
+          logger.error(`Falha ao sincronizar item #${item.id} [${item.table}]`, { error: errorMsg });
         }
       }
 
-      const remainingPending = await db.syncQueue.where('status').equals('PENDING').count();
+      const remainingPending = await db.syncQueue.count();
       useNetworkStore.getState().setPendingSyncCount(remainingPending);
       useNetworkStore.getState().setLastSyncTimestamp(new Date().toISOString());
 
@@ -101,25 +85,21 @@ export class SyncEngine {
   }
 
   public async enqueue(
-    entity: 'attendance' | 'lessonJournal' | 'lessonPlan' | 'student',
-    action: 'CREATE' | 'UPDATE' | 'DELETE',
-    payload: Record<string, unknown>
+    table: string,
+    action: 'INSERT' | 'UPDATE' | 'DELETE',
+    payload: any
   ): Promise<number> {
-    const uuid = `sync-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const id = await db.syncQueue.add({
-      uuid,
-      entity,
+      table,
       action,
       payload,
-      status: 'PENDING',
       createdAt: new Date().toISOString(),
-      retries: 0,
     });
 
-    const pendingCount = await db.syncQueue.where('status').equals('PENDING').count();
+    const pendingCount = await db.syncQueue.count();
     useNetworkStore.getState().setPendingSyncCount(pendingCount);
 
-    logger.info(`Novo evento enfileirado no Dexie #${id} [${entity}:${action}]`, payload);
+    logger.info(`Novo evento enfileirado no Dexie #${id} [${table}:${action}]`, payload);
 
     if (navigator.onLine) {
       setTimeout(() => this.processQueue(), 500);

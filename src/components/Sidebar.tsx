@@ -1,5 +1,9 @@
+'use client';
+
 import React from 'react';
 import { ActiveTabType } from '../types';
+import { useAuthStore } from '../stores/useAuthStore';
+import { useAppStore } from '../stores/useAppStore';
 import { 
   Users, 
   Calendar, 
@@ -26,7 +30,10 @@ import {
   Sparkles,
   Server,
   Layout,
-  Code
+  Code,
+  UserCheck,
+  ClipboardList,
+  LogOut
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -36,6 +43,24 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, totalPainsCount }) => {
+  const { user, logout } = useAuthStore();
+  const { teacherActiveTab, setTeacherActiveTab } = useAppStore();
+
+  const handleLogout = async () => {
+    await logout();
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+  };
+
+  // Check if the current user is a teacher (i.e. non-admin)
+  const isTeacher = user && 
+    (user.role === 'teacher' || 
+     user.role === 'TEACHER' || 
+     (user.role as string) === 'professor' || 
+     (user.role as string) === 'PROFESSOR' || 
+     (user.role !== 'admin' && user.role !== 'ADMIN'));
+
   const blueprintItems: { id: ActiveTabType; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'sprint_1_foundation', label: 'Sprint 01 — Foundation (Produção)', icon: <Zap className="w-4 h-4 text-emerald-400" />, badge: 'Live 100%' },
     { id: 'sprint_0_plan', label: 'Sprint 0 Implementation Plan v1.0', icon: <Terminal className="w-4 h-4 text-indigo-400" />, badge: 'Execução' },
@@ -81,6 +106,117 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, total
     { id: 'pain_matrix', label: 'Matriz Geral de Dores', icon: <Grid className="w-4 h-4" />, badge: 'MVP' }
   ];
 
+  if (isTeacher) {
+    const teacherName = user?.name || 'Professor';
+    const initials = teacherName.slice(0, 2).toUpperCase();
+    
+    return (
+      <aside className="w-64 bg-slate-900 text-white flex flex-col h-full shrink-0 select-none border-r border-slate-800">
+        {/* Brand Header */}
+        <div className="p-5 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-indigo-500 rounded-lg flex items-center justify-center font-black text-xl text-white shadow-md shadow-indigo-500/30">
+              E
+            </div>
+            <div>
+              <h1 className="font-extrabold tracking-tight text-lg text-white leading-none">EducaFlow</h1>
+              <p className="text-[10px] text-indigo-400 font-semibold tracking-wider uppercase mt-1">Painel do Professor</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-2.5 font-mono flex items-center gap-1">
+            <Award className="w-3.5 h-3.5 text-indigo-400" />
+            Ecossistema do Professor - EF1
+          </p>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
+          <div className="space-y-1">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2 flex items-center gap-1.5">
+              <ClipboardList className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Menu Principal</span>
+            </div>
+
+            {/* Tab: Chamada Rápida */}
+            <button
+              onClick={() => {
+                setTeacherActiveTab('attendance');
+                setActiveTab('sprint_1_foundation');
+              }}
+              className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs transition-all duration-150 flex items-center gap-3 cursor-pointer ${
+                teacherActiveTab === 'attendance' && activeTab === 'sprint_1_foundation'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <UserCheck className="w-4 h-4 shrink-0" />
+              <span>Chamada Rápida</span>
+            </button>
+
+            {/* Tab: Diário de Classe & Notas */}
+            <button
+              onClick={() => {
+                setTeacherActiveTab('diary');
+                setActiveTab('sprint_1_foundation');
+              }}
+              className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs transition-all duration-150 flex items-center gap-3 cursor-pointer ${
+                teacherActiveTab === 'diary' && activeTab === 'sprint_1_foundation'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 shrink-0" />
+              <span>Diário & Notas</span>
+            </button>
+
+            {/* Tab: Aurora AI (Assistente) */}
+            <button
+              onClick={() => {
+                setTeacherActiveTab('planner');
+                setActiveTab('sprint_1_foundation');
+              }}
+              className={`w-full text-left px-3.5 py-3 rounded-xl font-bold text-xs transition-all duration-150 flex items-center gap-3 cursor-pointer ${
+                teacherActiveTab === 'planner' && activeTab === 'sprint_1_foundation'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
+              <span>Aurora AI</span>
+            </button>
+          </div>
+        </nav>
+
+        {/* Logged User Footer card */}
+        <div className="p-3.5 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-indigo-600 text-white border border-indigo-500/20 flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt={teacherName} className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <span>{initials}</span>
+              )}
+            </div>
+            <div className="truncate min-w-0">
+              <p className="text-[11px] font-bold text-slate-100 truncate">{teacherName}</p>
+              <p className="text-[9px] text-indigo-400 font-semibold truncate">
+                Professor(a) • {user?.schoolName || 'Escola'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            title="Sair do Sistema"
+            className="p-1.5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 rounded-lg transition-colors cursor-pointer shrink-0"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </aside>
+    );
+  }
+
+  // Fallback to original blueprint navigation for Admins or non-logged-in views
   return (
     <aside className="w-64 bg-slate-900 text-white flex flex-col h-full shrink-0 select-none border-r border-slate-800">
       {/* Brand Header */}
@@ -298,7 +434,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, total
       </nav>
 
       {/* Status Footer */}
-      <div className="p-3.5 border-t border-slate-800 bg-slate-950/60">
+      <div className="p-3.5 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center font-bold text-xs shrink-0">
             <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
@@ -310,6 +446,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, total
             </p>
           </div>
         </div>
+        {user && (
+          <button
+            onClick={handleLogout}
+            title="Encerrar Sessão"
+            className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </aside>
   );

@@ -29,12 +29,28 @@ import { PainMapStageView } from './components/PainMapStageView';
 import { PainMatrixView } from './components/PainMatrixView';
 import { PAIN_POINTS } from './data/painsData';
 import TechnicalValidationPage from './app/page';
+import LoginPage from './app/login/page';
+import AdminDashboardPage from './app/admin/page';
 import { AppProviders } from './providers/AppProviders';
+import { useAuthStore } from './stores/useAuthStore';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTabType>('sprint_1_foundation');
+  const { user, isAuthenticated } = useAuthStore();
 
   const isStageTab = ['before', 'during', 'after', 'closing', 'year_round'].includes(activeTab);
+
+  // Sync activeTab with pathname if loaded directly on subpaths in a browser
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path === '/admin' && user?.role !== 'admin' && user?.role !== 'ADMIN') {
+        window.history.replaceState({}, '', '/');
+      } else if (path === '/login' && isAuthenticated) {
+        window.history.replaceState({}, '', user?.role === 'admin' || user?.role === 'ADMIN' ? '/admin' : '/');
+      }
+    }
+  }, [isAuthenticated, user]);
 
   return (
     <AppProviders>
@@ -56,7 +72,15 @@ export default function App() {
 
           {/* Dynamic View Body */}
           <section className="flex-1 overflow-y-auto relative">
-            {activeTab === 'sprint_1_foundation' && <TechnicalValidationPage />}
+            {activeTab === 'sprint_1_foundation' && (
+              !isAuthenticated || !user ? (
+                <LoginPage />
+              ) : (user.role === 'admin' || user.role === 'ADMIN') ? (
+                <AdminDashboardPage />
+              ) : (
+                <TechnicalValidationPage />
+              )
+            )}
 
             {activeTab === 'sprint_0_plan' && <Sprint0PlanView />}
 

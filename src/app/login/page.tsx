@@ -5,15 +5,16 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, registerSchema, LoginInput, RegisterInput } from '../../lib/authSchemas';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { LogIn, UserPlus, Eye, EyeOff, ShieldCheck, Sparkles, CheckCircle2, AlertCircle, ArrowRight, BookOpen } from 'lucide-react';
-import Link from 'next/link';
+import { LogIn, UserPlus, Eye, EyeOff, ShieldCheck, Sparkles, CheckCircle2, AlertCircle, ArrowRight, BookOpen, Users, UserCog } from 'lucide-react';
+import { isSupabaseConfigured } from '../../services/supabase/client';
 
 export default function LoginPage() {
+  const dbConnected = isSupabaseConfigured();
   const [activeTab, setActiveTab] = useState<'login' | 'register' | 'demo'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [registerSuccess, setRegisterSuccess] = useState(false);
 
-  const { loginWithEmail, signupWithEmail, loginDemoTeacher, isLoading, error, clearError } = useAuthStore();
+  const { loginWithEmail, signupWithEmail, loginDemoTeacher, loginDemoAdmin, isLoading, error, clearError } = useAuthStore();
 
   // Login Form
   const {
@@ -48,7 +49,13 @@ export default function LoginPage() {
     clearError();
     const success = await loginWithEmail(data.email, data.password);
     if (success && typeof window !== 'undefined') {
-      window.location.href = '/';
+      // Upon successful authentication, check role
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'admin' || user?.role === 'ADMIN') {
+        window.history.pushState({}, '', '/admin');
+      } else {
+        window.history.pushState({}, '', '/');
+      }
     }
   };
 
@@ -57,14 +64,30 @@ export default function LoginPage() {
     const success = await signupWithEmail(data.email, data.password, data.name, data.schoolName);
     if (success) {
       setRegisterSuccess(true);
+      const user = useAuthStore.getState().user;
+      if (typeof window !== 'undefined') {
+        if (user?.role === 'admin' || user?.role === 'ADMIN') {
+          window.history.pushState({}, '', '/admin');
+        } else {
+          window.history.pushState({}, '', '/');
+        }
+      }
     }
   };
 
-  const handleDemoAccess = () => {
+  const handleTeacherDemo = () => {
     clearError();
     loginDemoTeacher();
     if (typeof window !== 'undefined') {
-      window.location.href = '/';
+      window.history.pushState({}, '', '/');
+    }
+  };
+
+  const handleAdminDemo = () => {
+    clearError();
+    loginDemoAdmin();
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', '/admin');
     }
   };
 
@@ -90,6 +113,22 @@ export default function LoginPage() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md z-10 px-4 sm:px-0">
         <div className="bg-slate-800/95 backdrop-blur-md border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden p-6 sm:p-8">
           
+          {/* Connection Status Indicator */}
+          <div className="mb-5 flex items-center justify-between bg-slate-900/40 border border-slate-750 rounded-xl p-3">
+            <span className="text-xs text-slate-400 font-medium">Supabase Auth:</span>
+            {dbConnected ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Nuvem Ativa
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/15 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                Modo Local (MOCK)
+              </span>
+            )}
+          </div>
+
           {/* Tabs Navigation */}
           <div className="flex border-b border-slate-700 mb-6 bg-slate-900/60 p-1 rounded-xl">
             <button
@@ -180,12 +219,16 @@ export default function LoginPage() {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
                     Senha
                   </label>
-                  <Link
-                    href="/esqueci-senha"
+                  <a
+                    href="#recover"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      alert("Redefinição de senha demonstrativa. Utilize o acesso demo.");
+                    }}
                     className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
                   >
                     Esqueceu a senha?
-                  </Link>
+                  </a>
                 </div>
                 <div className="relative">
                   <input
@@ -343,29 +386,55 @@ export default function LoginPage() {
 
           {/* TAB 3: DEMO ACCESS */}
           {activeTab === 'demo' && (
-            <div className="space-y-6 text-center py-2">
-              <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-800/80 text-emerald-200 text-left text-xs leading-relaxed space-y-2">
-                <div className="flex items-center gap-2 font-bold text-emerald-300 text-sm">
-                  <ShieldCheck className="w-4 h-4" />
-                  Perfil Pré-configurado de Produção
+            <div className="space-y-4 py-2">
+              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 text-xs leading-relaxed space-y-2">
+                <div className="flex items-center gap-2 font-bold text-slate-200 text-sm mb-1">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  Acesso Demonstrativo por Papel (RBAC)
                 </div>
                 <p>
-                  Acesse instantaneamente o cockpit completo do EducaFlow com a docente preenchida:
+                  Escolha um perfil demonstrativo para acessar o EducaFlow instantaneamente sem necessidade de cadastro:
                 </p>
-                <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 text-slate-300 text-xs font-mono">
-                  <p><span className="text-emerald-400">Nome:</span> Prof.ª Marta Vasconcelos</p>
-                  <p><span className="text-emerald-400">Escola:</span> E.M. Monteiro Lobato</p>
-                  <p><span className="text-emerald-400">Ano:</span> Ensino Fundamental I (3º Ano A)</p>
-                </div>
               </div>
 
+              {/* Teacher Button */}
               <button
                 type="button"
-                onClick={handleDemoAccess}
-                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 text-sm"
+                onClick={handleTeacherDemo}
+                className="w-full p-4 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/30 text-left transition-all group flex items-center justify-between gap-4"
               >
-                <Sparkles className="w-5 h-5 text-emerald-200" />
-                <span>Entrar como Prof.ª Marta (Acesso Direto)</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white leading-tight">Acesso como Professor</h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Prof.ª Marta • Chamadas, Notas, Plano de Aula</p>
+                  </div>
+                </div>
+                <div className="w-6 h-6 rounded-full border border-slate-800 flex items-center justify-center group-hover:bg-indigo-600 group-hover:border-indigo-500 transition-all text-slate-400 group-hover:text-white">
+                  <ArrowRight className="w-3 h-3" />
+                </div>
+              </button>
+
+              {/* Admin Button */}
+              <button
+                type="button"
+                onClick={handleAdminDemo}
+                className="w-full p-4 rounded-xl bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-emerald-500/30 text-left transition-all group flex items-center justify-between gap-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-bold group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                    <UserCog className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white leading-tight">Acesso como Coordenador (Admin)</h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Coord.ª Ana Beatriz • Gestão Escolar, Métricas</p>
+                  </div>
+                </div>
+                <div className="w-6 h-6 rounded-full border border-slate-800 flex items-center justify-center group-hover:bg-emerald-600 group-hover:border-emerald-500 transition-all text-slate-400 group-hover:text-white">
+                  <ArrowRight className="w-3 h-3" />
+                </div>
               </button>
             </div>
           )}

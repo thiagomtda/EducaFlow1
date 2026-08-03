@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { UserProfile, AuthSession } from '../types';
-import { authService, DEFAULT_DEMO_TEACHER } from '../services/authService';
+import { authService, DEFAULT_DEMO_TEACHER, DEFAULT_DEMO_ADMIN } from '../services/authService';
 import { logger } from '../lib/logger';
 import { AppConstants } from '../constants';
 
@@ -17,6 +17,7 @@ interface AuthState {
   sendPasswordReset: (email: string) => Promise<boolean>;
   resetPassword: (newPassword: string) => Promise<boolean>;
   loginDemoTeacher: () => void;
+  loginDemoAdmin: () => void;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
   clearSession: () => void;
@@ -24,10 +25,26 @@ interface AuthState {
   clearError: () => void;
 }
 
+const getInitialUser = (): UserProfile | null => {
+  if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem(AppConstants.STORAGE_AUTH_KEY);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (e) {
+      logger.warn('Erro ao carregar usuário inicial do localStorage', e);
+    }
+  }
+  return null;
+};
+
+const initialUser = getInitialUser();
+
 export const useAuthStore = create<AuthState>((set, get) => ({
-  user: DEFAULT_DEMO_TEACHER,
+  user: initialUser,
   session: null,
-  isAuthenticated: true,
+  isAuthenticated: !!initialUser,
   isLoading: false,
   error: null,
 
@@ -97,6 +114,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loginDemoTeacher: () => {
     logger.info('Acesso rápido Demo Teacher acionado em useAuthStore');
     const { user, session } = authService.loginDemoTeacher();
+    set({
+      user,
+      session,
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    });
+  },
+
+  loginDemoAdmin: () => {
+    logger.info('Acesso rápido Demo Admin acionado em useAuthStore');
+    const { user, session } = authService.loginDemoAdmin();
     set({
       user,
       session,
